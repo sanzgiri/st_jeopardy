@@ -129,7 +129,10 @@ def get_one_question():
         
     question = row['text'].iloc[0]
     answer = row['answer'].iloc[0]
-    return [category, question, answer, value]
+    rnd = row['rnd'].iloc[0]
+    airdate = row['airdate'].iloc[0]
+
+    return [airdate, rnd, category, question, answer, value]
 
 
 def init(heart: int = 3, post_init=False):
@@ -174,32 +177,37 @@ def main():
 
     with settings.expander('Settings'):
         st.write('**Warning**: changing this restarts your game')
-        st.select_slider('Set lives', list(range(1, 11)), 5, key='heart', on_change=restart)
+        st.select_slider('Set lives', list(range(1, 11)), 3, key='heart', on_change=restart)
 
     header, placeholder, debug = st.empty(), st.empty(), st.empty()
-    category = st.session_state.question[0]
-    question = st.session_state.question[1]
-    answer = st.session_state.question[2]
-    value = st.session_state.question[3]
 
-    header.button(f'Question from category {category} for {value}:')
+    airdate = st.session_state.question[0]
+    rnd = st.session_state.question[1]
+    category = st.session_state.question[2]
+    question = st.session_state.question[3]
+    answer = st.session_state.question[4]
+    value = st.session_state.question[5]
+    prev_guess = ''
+
+    header.button(f'Question from airdate {airdate}, round {rnd}, category {category}, for {value}:')
     guess = placeholder.text_input(f'{question}', 
                                     key=st.session_state.input).lower()
      
     if not guess:
-        if st.session_state.start != 0:
+        if st.session_state.start != 0 and guess == prev_guess:
             debug.warning('Please make a guess')
     else:
         st.session_state.nq += 1
+        prev_guess = guess
         sresponse = sanitize(guess)
         sanswer = sanitize(answer)
         if (compare_strings(sresponse, sanswer) >= 0.5):
-            debug.success(f"**Correct**, the answer was {answer} 🎈")
+            debug.success(f"**Correct**, the answer was: {answer}! 🎈")
             st.session_state.points += value
             st.session_state.answered += 1
             st.button('Next', on_click=restart)
         else:
-            debug.error(f"**Incorrect**, the answer was {answer} 😓")
+            debug.error(f"**Incorrect**, the answer was: {answer}! 😓")
             st.session_state.points -= value
             st.session_state.lives -= 1
             if st.session_state.lives > 0:            
@@ -207,7 +215,7 @@ def main():
 
     if st.session_state.lives == 0:
         score = f"{st.session_state.points} ({st.session_state.answered}/{st.session_state.nq})"
-        debug.error(f"**Game Over** Your score: {score} 😓")
+        debug.error(f"**Incorrect**, the answer was: {answer}! **Sorry, Game Over** Your score: {score} 😓")
         st.button('Play again?', on_click=init)
         
     lives.button(f'{("❤️" * st.session_state.lives) if st.session_state.lives else "💀 Lost"}')
