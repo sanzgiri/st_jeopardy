@@ -103,9 +103,9 @@ def sanitize(string):
     string = string.strip().lower()
     return string
 
-@st.cache    
+@st.cache(persist=True, ttl=86400*7)    
 def read_jarchive():
-    df = pd.read_csv('https://media.githubusercontent.com/media/sanzgiri/jarchive/master/jarchive.csv',
+    df = pd.read_csv('https://st-jeopardy.s3.us-west-2.amazonaws.com/jarchive.csv',
      skiprows=4, sep='\|\|', engine='python', names=['gid', 'airdate', 'rnd', 'category', 'value', 'text', 'answer'])
     df = df[df.text != ' = ']
     df = df[df.answer != ' = ']
