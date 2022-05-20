@@ -105,11 +105,7 @@ def sanitize(string):
 
 @st.cache(persist=True, ttl=86400*7)    
 def read_jarchive():
-    df = pd.read_csv('https://st-jeopardy.s3.us-west-2.amazonaws.com/jarchive.csv',
-     skiprows=4, sep='\|\|', engine='python', names=['gid', 'airdate', 'rnd', 'category', 'value', 'text', 'answer'])
-    df = df[df.text != ' = ']
-    df = df[df.answer != ' = ']
-    df = df[df.text != ' ? ']
+    df = pd.read_csv('bing_archive_distinct.csv', engine='python', names=['url', 'answer', 'cc', 'year', 'mon'])
     print(df.shape)
     return df
 
@@ -118,21 +114,15 @@ def get_one_question():
 
     row = df.sample(n=1)
     print(row)
-    category = row['category'].iloc[0]
-    value = row['value'].iloc[0]
+    value = 100
         
-    try:
-        value = value.replace(',','')
-        value = int(value)
-    except:
-        value = 100
-        
-    question = row['text'].iloc[0]
+    url = row['url'].iloc[0]
     answer = row['answer'].iloc[0]
-    rnd = row['rnd'].iloc[0]
-    airdate = row['airdate'].iloc[0]
+    cc =  row['cc'].iloc[0]
+    year = row['year'].iloc[0]
+    mon = row['mon'].iloc[0]
 
-    return [airdate, rnd, category, question, answer, value]
+    return [url, answer, cc, year, mon, value]
 
 
 def init(heart: int = 3, post_init=False):
@@ -167,7 +157,7 @@ def main():
     global df
     df = read_jarchive()
 
-    st.title("Streamlit Jeopardy!")
+    st.title("Streamlit Bingify!")
 
     if 'question' not in st.session_state:
         init()
@@ -181,16 +171,17 @@ def main():
 
     header, placeholder, debug = st.empty(), st.empty(), st.empty()
 
-    airdate = st.session_state.question[0]
-    rnd = st.session_state.question[1]
-    category = st.session_state.question[2]
-    question = st.session_state.question[3]
-    answer = st.session_state.question[4]
+    url = st.session_state.question[0]
+    answer = st.session_state.question[1]
+    cc = st.session_state.question[2]
+    year = st.session_state.question[3]
+    mon = st.session_state.question[4]
     value = st.session_state.question[5]
     prev_guess = ''
 
-    header.button(f'Question from airdate {airdate}, round {rnd}, category {category}, for {value}:')
-    guess = placeholder.text_input(f'{question}', 
+    header.button(f'Identify location from bing archive {cc} {year}-{mon} below for {value} points:')
+    st.image(url)
+    guess = placeholder.text_input(f'{url}',
                                     key=st.session_state.input).lower()
      
     if not guess:
@@ -201,6 +192,7 @@ def main():
         prev_guess = guess
         sresponse = sanitize(guess)
         sanswer = sanitize(answer)
+        sanswer = sanswer.split()[-1]
         if (compare_strings(sresponse, sanswer) >= 0.5):
             debug.success(f"**Correct**, the answer was: {answer}! 🎈")
             st.session_state.points += value
